@@ -1,26 +1,13 @@
 import os
 import sys
 
-from openai import OpenAI
+from cascade.generation.executor.LLMCallerFactory import create_llm_caller
 from cascade.utils.Utils import load_json_from_path, save_dicts_list_to_json
 
 
-def makeModelRequest(promptList, max_tokens=1200, temperature=0, freq_penalty=0.0):
-    if "OPENAI_API_KEY" in os.environ:
-        api_key = os.environ["OPENAI_API_KEY"]
-    else:
-        raise Exception("No api key in environment")
-
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model=model,
-        messages=promptList,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        frequency_penalty=freq_penalty
-    )
-
-    answer = str(response.choices[0].message.content)
+def makeModelRequest(promptList, caller, max_tokens=1200, temperature=0, freq_penalty=0.0):
+    response = caller.execute(promptList).model_dump()
+    answer = str(response["choices"][0]["message"]["content"])
 
     return answer
 
@@ -71,7 +58,19 @@ if __name__ == '__main__':
     and (4) is there an inconsistency between them
  """
 
-    model = "gpt-4.1-mini" # "gpt-4o-mini-2024-07-18"
+    provider = os.environ.get("CASCADE_LLM_PROVIDER", "openai")
+    model = os.environ.get("CASCADE_LLM_MODEL", "gpt-4.1-mini")
+    caller = create_llm_caller(
+        provider=provider,
+        model=model,
+        max_tokens=int(os.environ.get("CASCADE_LLM_MAX_TOKENS", "1200")),
+        temperature=float(os.environ.get("CASCADE_LLM_TEMPERATURE", "0")),
+        freq_penalty=float(os.environ.get("CASCADE_LLM_FREQ_PENALTY", "0.0")),
+        base_url=os.environ.get("CASCADE_LLM_BASE_URL"),
+        api_key=os.environ.get("CASCADE_LLM_API_KEY"),
+        api_key_env=os.environ.get("CASCADE_LLM_API_KEY_ENV"),
+        token_parameter=os.environ.get("CASCADE_LLM_TOKEN_PARAMETER"),
+    )
 
     # read in analyze file
     print("start baseline")
@@ -96,7 +95,7 @@ if __name__ == '__main__':
                            "content": "Are the following docstring and code consistent? Answer first with Yes or No, then explain why."})
         promptList.append({"role": "user", "content": f"{full_code}"})
 
-        answer = makeModelRequest(promptList)
+        answer = makeModelRequest(promptList, caller)
 
         log.append(f"question 1 - answer:\n{answer}")
 
@@ -125,7 +124,7 @@ if __name__ == '__main__':
                            "content": "Is there an inconsistency between the following docstring and code? Answer first with Yes or No, then explain why."})
         promptList.append({"role": "user", "content": f"{full_code}"})
 
-        answer = makeModelRequest(promptList)
+        answer = makeModelRequest(promptList, caller)
 
         log.append(f"question 2 - answer:\n{answer}")
 
@@ -158,7 +157,7 @@ if __name__ == '__main__':
         promptList.append({"role": "user",
                            "content": f"{full_code}\n\n\nAre code and documentation of {d['signature']['name']} consistent? The Documentation is {d['doc']}\n\n Answer with Yes or No?"})
 
-        answer = makeModelRequest(promptList)
+        answer = makeModelRequest(promptList, caller)
         log.append(f"question 3 :\n{answer}")
 
         for word in answer.lower().split():
@@ -189,7 +188,7 @@ if __name__ == '__main__':
         promptList.append({"role": "user",
                            "content": f"{full_code}\n\n\n Is there an inconsistency between code and documentation of {d['signature']['name']}? The Documentation is {d['doc']}\n\n Answer with Yes or No?"})
 
-        answer = makeModelRequest(promptList)
+        answer = makeModelRequest(promptList, caller)
         log.append(f"question 4 - answer: \n{answer}")
 
         for word in answer.lower().split():

@@ -1,7 +1,7 @@
 import re
 
 from cascade.generation.Generator import Generator
-from cascade.generation.executor.OpenAICaller import OpenAICaller
+from cascade.generation.executor.LLMCallerFactory import create_llm_caller
 from cascade.utils.JavaUtils import build_context, build_signature, repair_helper_functions, get_repair_helper_functions
 
 import os
@@ -19,15 +19,28 @@ class JavaCodeGenerator(Generator):
                  model="gpt-4o-mini-2024-07-18",
                  freq_penalty=0.0,
                  dummy=False,
-                 base_url=None, api_key=None
+                 provider=None,
+                 llm_provider=None,
+                 base_url=None,
+                 api_key=None,
+                 api_key_env=None,
+                 timeout=60.0,
+                 token_parameter=None,
+                 send_temperature=None,
+                 enable_thinking=None
                  ):
         super().__init__()
         self.model = model
         self.max_prompt_tokens = max_prompt_tokens
-        self.prompt_executor = OpenAICaller(max_attempts=max_attempts, model=model,
-                                            max_tokens=max_tokens, temperature=temperature,
-                                            delay=delay, freq_penalty=freq_penalty, dummy=dummy,
-                                            api_key=api_key, base_url=base_url)
+        self.prompt_executor = create_llm_caller(provider=provider, llm_provider=llm_provider,
+                                                 max_attempts=max_attempts, model=model,
+                                                 max_tokens=max_tokens, temperature=temperature,
+                                                 delay=delay, freq_penalty=freq_penalty, dummy=dummy,
+                                                 api_key=api_key, api_key_env=api_key_env,
+                                                 base_url=base_url, timeout=timeout,
+                                                 token_parameter=token_parameter,
+                                                 send_temperature=send_temperature,
+                                                 enable_thinking=enable_thinking,)
 
 
     def build_prompt(self, context):
@@ -133,7 +146,7 @@ class JavaCodeGenerator(Generator):
                          "You can use tools to find out more about classes instead of making your own assumptions. "
                          "You have to assume that all fields are initialized with null"
                          )
-        prompt = (f"The following errors occurred during compilation of the class: {context["parent"]["name"]}.\nErrors:\n```\n{errors}\n```\n\n "
+        prompt = (f"The following errors occurred during compilation of the class: {context['parent']['name']}.\nErrors:\n```\n{errors}\n```\n\n "
                   "Fix the errors in the following function while still following the documentation as close as possible:\n"
                   f"```java\n{build_signature(context, doc=True) + context[key]}\n```"
 

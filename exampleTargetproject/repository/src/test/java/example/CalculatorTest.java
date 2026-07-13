@@ -18,4 +18,3 @@ class CalculatorTest {
         assertEquals(6, calculator.subtract(2, 3));
     }
 }
-

@@ -6,7 +6,7 @@ import subprocess
 #import tiktoken
 
 from cascade.generation.Generator import Generator
-from cascade.generation.executor.OpenAICaller import OpenAICaller
+from cascade.generation.executor.LLMCallerFactory import create_llm_caller
 from cascade.utils.JavaUtils import build_context, check_syntax, repair_helper_functions, get_repair_helper_functions, \
     build_signature
 
@@ -19,14 +19,27 @@ class MultiStepJavaTestGenerator(Generator):
                  temperature=0,
                  max_prompt_tokens=8000,
                  freq_penalty=0.0, dummy=False,
-                 base_url=None, api_key=None #Base url if used with vllm,  for example: "http://127.0.0.1:8000/v1"
+                 provider=None,
+                 llm_provider=None,
+                 base_url=None,
+                 api_key=None,
+                 api_key_env=None,
+                 timeout=60.0,
+                 token_parameter=None,
+                 send_temperature=None,
+                 enable_thinking=None
                  ):
 
         super().__init__()
-        self.prompt_executor = OpenAICaller(max_attempts=max_attempts, model=model,
-                                            max_tokens=max_tokens, temperature=temperature,
-                                            delay=delay, freq_penalty=freq_penalty, dummy=dummy,
-                                            api_key=api_key, base_url=base_url)
+        self.prompt_executor = create_llm_caller(provider=provider, llm_provider=llm_provider,
+                                                 max_attempts=max_attempts, model=model,
+                                                 max_tokens=max_tokens, temperature=temperature,
+                                                 delay=delay, freq_penalty=freq_penalty, dummy=dummy,
+                                                 api_key=api_key, api_key_env=api_key_env,
+                                                 base_url=base_url, timeout=timeout,
+                                                 token_parameter=token_parameter,
+                                                 send_temperature=send_temperature,
+                                                 enable_thinking=enable_thinking,)
 
         self.model = model
         self.max_prompt_tokens = max_prompt_tokens
@@ -95,14 +108,14 @@ class MultiStepJavaTestGenerator(Generator):
         if not response_step1a["choices"]:
             print("      error during generation")
             with open(errors_path, "a") as f:
-                f.write(f"error during test generation of {context["signature"]["name"]}")
+                f.write(f"error during test generation of {context['signature']['name']}")
 
             return "", chat_history
 
         prompt_step1.append(response_step1a["choices"][0]["message"])
 
         # now the goal is to convert this text into a usable format and extract the testable properties
-        prompt_json_list = {"role": "user", "content": f"Now turn this into a JSON array of unit tests we should write for test driven development. Each entry in the array should have: \"test_name\": a descriptive test method name starting with 'test' and \"test_description\": a detailed description for the developer of what this tests should do and which specific behavior from the documentation it tests. In particular, I want testable statements of the 'if this then that' type.\nFocus on those tests that follow directly from the documentation, e.g. no performance based ones."}
+        prompt_json_list = {"role": "user", "content": f"Now turn this into a JSON array of unit tests we should write for test driven development. Each entry in the array should have: \"test_name\": a descriptive test method name starting with 'test' and \"test_description\": a detailed description for the developer of what this tests should do and which specific behavior from the documentation it tests. In particular, I want testable statements of the 'if this then that' type.\nFocus on those tests that follow directly from the documentation, e.g. no performance based ones.\nRespond only with a valid JSON array. Do not include Markdown, code fences, prose, comments, or any text before or after the JSON."}
 
         # possible alterations to later filter out unnecessary tests
         # To ensure the correctness of the `uniqueIterable` method, we can derive several testable behavior specifications based on the provided documentation.
@@ -281,18 +294,32 @@ class MultiStepJavaTestGenerator(Generator):
             with open(errors_path, "w") as f:
                 f.write(f"Could not parse JSON: {error_message}\nResponse text:\n{response_text}")
 
-        json_blocks = re.findall(r"```json\s*(.*?)\s*```", response_text, flags=re.DOTALL)
+        json_blocks = re.findall(r"```(?:json)?\s*(.*?)\s*```", response_text, flags=re.DOTALL | re.IGNORECASE)
+        candidates = [block.strip() for block in json_blocks]
 
+        stripped_response = response_text.strip()
+        if stripped_response:
+            candidates.append(stripped_response)
 
-        if not json_blocks:
-            log_json_error("Error extracting JSON block from response")
-            return []
+            start = stripped_response.find("[")
+            end = stripped_response.rfind("]")
+            if start != -1 and end != -1 and start < end:
+                candidates.append(stripped_response[start:end + 1])
 
-        try:
-            extracted_test_list = json.loads(json_blocks[0].strip())
+        extracted_test_list = None
+        parse_errors = []
+        for candidate in candidates:
+            try:
+                parsed = json.loads(candidate)
+                if isinstance(parsed, list):
+                    extracted_test_list = parsed
+                    break
+            except json.JSONDecodeError as e:
+                parse_errors.append(str(e))
 
-        except json.JSONDecodeError as e:
-            log_json_error(str(e))
+        if extracted_test_list is None:
+            error_message = parse_errors[-1] if parse_errors else "Error extracting JSON array from response"
+            log_json_error(error_message)
             return []
 
         # make sure that all tests begin with test (e.g. instead of ending) and adding numbers to test cases that have the name
@@ -313,5 +340,6 @@ class MultiStepJavaTestGenerator(Generator):
             return []
 
         test_names = [test['test_name'] for test in clean_test_list]
-        print(f"      Got {len(clean_test_list)} potential tests:\n        {'\n        '.join(test_names)}")
+        joined_names = "\n        ".join(test_names)
+        print(f"      Got {len(clean_test_list)} potential tests:\n        {joined_names}")
         return  clean_test_list

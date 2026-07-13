@@ -1,0 +1,11 @@
+{
+   "Extraction"    : { "name": "JavaExtraction",  "kwargs" : {}},
+   "CodeGenerator": { "name": "JavaCodeGenerator", "kwargs" : {"llm_provider": "anthropic", "model": "claude-sonnet-4-20250514"}},
+   "TestGenerator": { "name": "MultiStepJavaTestGenerator", "kwargs" : {"llm_provider": "anthropic", "model": "claude-sonnet-4-20250514"}},
+   "Analysis"      : { "name": "JavaTwoStepAnalysis",  "kwargs" : {}},
+   "Executor"      : { "name": "MavenJavaExecutor",   "kwargs" : {}},
+   "FilterFunctions"  : [
+      { "name": "CheckLengthFilterFunction", "kwargs" : {"key":"code", "op":">", "val":3}},
+      { "name": "CheckLengthFilterFunction", "kwargs" : {"key":"doc", "op":">", "val":12}}
+   ]
+}

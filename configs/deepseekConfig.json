@@ -1,0 +1,11 @@
+{
+   "Extraction"    : { "name": "JavaExtraction",  "kwargs" : {}},
+   "CodeGenerator": { "name": "JavaCodeGenerator", "kwargs" : {"llm_provider": "deepseek", "model": "deepseek-chat"}},
+   "TestGenerator": { "name": "MultiStepJavaTestGenerator", "kwargs" : {"llm_provider": "deepseek", "model": "deepseek-chat"}},
+   "Analysis"      : { "name": "JavaTwoStepAnalysis",  "kwargs" : {}},
+   "Executor"      : { "name": "MavenJavaExecutor",   "kwargs" : {}},
+   "FilterFunctions"  : [
+      { "name": "CheckLengthFilterFunction", "kwargs" : {"key":"code", "op":">", "val":3}},
+      { "name": "CheckLengthFilterFunction", "kwargs" : {"key":"doc", "op":">", "val":12}}
+   ]
+}

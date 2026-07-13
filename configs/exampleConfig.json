@@ -1,7 +1,7 @@
 {
    "Extraction"    : { "name": "JavaExtraction",  "kwargs" : {}},
-   "CodeGenerator": { "name": "JavaCodeGenerator", "kwargs" : {"model": "gpt-4o-mini-2024-07-18"}},
-   "TestGenerator": { "name": "MultiStepJavaTestGenerator", "kwargs" : {"model": "gpt-4o-mini-2024-07-18"}},
+   "CodeGenerator": { "name": "JavaCodeGenerator", "kwargs" : {"llm_provider": "vllm", "model": "Qwen/Qwen3-8B-AWQ", "base_url": "http://localhost:8000/v1", "timeout": 600, "max_tokens": 8096}},
+   "TestGenerator": { "name": "MultiStepJavaTestGenerator", "kwargs" : {"llm_provider": "vllm", "model": "Qwen/Qwen3-8B-AWQ", "base_url": "http://localhost:8000/v1", "timeout": 600, "max_tokens": 8096}},
    "Analysis"      : { "name": "JavaTwoStepAnalysis",  "kwargs" : {}},
    "Executor"      : { "name": "MavenJavaExecutor",   "kwargs" : {}},
    "FilterFunctions"  : [

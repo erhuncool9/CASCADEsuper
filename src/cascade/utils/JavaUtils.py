@@ -11,7 +11,8 @@ def build_context(context, doc=False, imports = False, no_fields=False, no_other
     constructors = context["parent"]["constructors"] if not no_constructors else []
     fields = context["parent"]["variables"] if not no_fields else []
     imports_ = context["parent"]["imports"]
-    class_ = (f"{''.join(imports_) + '\n' if imports else ''}"
+    import_header = "".join(imports_) + "\n" if imports else ""
+    class_ = (f"{import_header}"
               f"public class {context['parent']['name']}"
               f"{('<' + ', '.join(generics) + '>' + ' ' if generics else '')}" 
               f"{('extends ' + ', '.join(extends) + ' ' if extends else '')}"

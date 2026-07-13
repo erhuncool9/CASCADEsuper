@@ -29,4 +29,3 @@ public class Calculator {
 	public void dummy2() {}
 
 }
-

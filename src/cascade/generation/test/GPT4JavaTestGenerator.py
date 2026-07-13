@@ -8,20 +8,29 @@ from platform import system
 import tiktoken
 
 from cascade.generation.Generator import Generator
-from cascade.generation.executor.OpenAICaller import OpenAICaller
+from cascade.generation.executor.LLMCallerFactory import create_llm_caller
 from cascade.utils.JavaUtils import build_context, check_syntax, repair_helper_functions, get_repair_helper_functions
 
 
 class GPT4JavaTestGenerator(Generator):
     """deprecated"""
-    def __init__(self, max_attempts=1, max_tokens=16000, temperature=0, delay=3, max_prompt_tokens=5000, model="gpt-4o-mini-2024-07-18", freq_penalty=0.0, dummy=False, ask_for_imports=False, import_prompt_finisher="Reply with the missing imports, leave out those you don't know the correct package of."):
+    def __init__(self, max_attempts=1, max_tokens=16000, temperature=0, delay=3, max_prompt_tokens=5000,
+                 model="gpt-4o-mini-2024-07-18", freq_penalty=0.0, dummy=False, ask_for_imports=False,
+                 import_prompt_finisher="Reply with the missing imports, leave out those you don't know the correct package of.",
+                 provider=None, llm_provider=None, base_url=None, api_key=None, api_key_env=None,
+                 timeout=60.0, token_parameter=None, send_temperature=None):
         super().__init__()
         self.ask_for_imports = ask_for_imports
         self.model = model
         self.import_prompt_finisher = import_prompt_finisher
         self.max_prompt_tokens = max_prompt_tokens
-        self.prompt_executor = OpenAICaller(max_attempts=max_attempts, model=model, max_tokens=max_tokens, temperature=temperature,
-                                            delay=delay, freq_penalty=freq_penalty, dummy=dummy)
+        self.prompt_executor = create_llm_caller(provider=provider, llm_provider=llm_provider,
+                                                 max_attempts=max_attempts, model=model, max_tokens=max_tokens,
+                                                 temperature=temperature, delay=delay, freq_penalty=freq_penalty,
+                                                 dummy=dummy, api_key=api_key, api_key_env=api_key_env,
+                                                 base_url=base_url, timeout=timeout,
+                                                 token_parameter=token_parameter,
+                                                 send_temperature=send_temperature)
 
         self.is_three = False
 

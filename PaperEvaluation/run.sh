@@ -91,7 +91,7 @@ do
 	rm -rf ./repository
 )
 done
-(cd; cd "CASCADE"; git rev-parse HEAD >> $WORKING_DIR/runs; date >> $WORKING_DIR/runs;  echo >> $WORKING_DIR/runs)
+(cd; cd "CASCADEsuper"; git rev-parse HEAD >> $WORKING_DIR/runs; date >> $WORKING_DIR/runs;  echo >> $WORKING_DIR/runs)
 )
 
 printf 'Finished in %d h %02d m %02d s\n' $((SECONDS/3600)) $(((SECONDS/60)%60)) $((SECONDS%60))
