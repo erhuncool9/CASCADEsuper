@@ -101,6 +101,9 @@ class OpenAICompatibleCaller(LLMCaller):
         self.client = OpenAI(**client_kwargs)
 
     def execute(self, prompt, **kwargs):
+        """
+            It runs and executes the prompt with the config for OpenAI compatible LLMs.
+        """
         if self.dummy:
             return LLMResponse({
                 "choices": [{
