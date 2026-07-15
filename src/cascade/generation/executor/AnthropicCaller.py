@@ -51,6 +51,9 @@ class AnthropicCaller(LLMCaller):
         self.client = Anthropic(api_key=os.environ.get(resolved_api_key_env, api_key), timeout=timeout)
 
     def execute(self, prompt, **kwargs):
+        """
+            It runs and executes the prompt with the config for Anthropic.
+        """
         if self.dummy:
             return LLMResponse({
                 "choices": [{
@@ -87,6 +90,9 @@ class AnthropicCaller(LLMCaller):
         raise Exception("Generation failed because of repeated errors.")
 
     def _convert_messages(self, prompt):
+        """
+            Turns the prompt from the OpenAI format into the Anthropic-style.
+        """
         system_messages = []
         messages = []
 
@@ -129,6 +135,9 @@ class AnthropicCaller(LLMCaller):
         return "\n\n".join(system_messages), messages
 
     def _convert_tools(self, tools):
+        """
+            Turns the tools from the OpenAI format into the Anthropic-style.
+        """
         converted = []
         for tool in tools:
             function = tool["function"]
@@ -140,6 +149,9 @@ class AnthropicCaller(LLMCaller):
         return converted
 
     def _to_openai_response(self, response):
+        """
+            Turns the prompt from the OpenAI format into the Anthropic-style.
+        """
         text_parts = []
         tool_calls = []
 
